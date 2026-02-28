@@ -1,0 +1,112 @@
+@import "tailwindcss";
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0a0a;
+    --foreground: #ededed;
+  }
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: Arial, Helvetica, sans-serif;
+}
+html {
+  scroll-behavior: smooth;
+}
+
+/* Wave Animation */
+@keyframes wave {
+  0% {
+    transform: translateX(0) translateY(0) scaleY(1);
+  }
+  25% {
+    transform: translateX(-15%) translateY(-4px) scaleY(1.15);
+  }
+  50% {
+    transform: translateX(-30%) translateY(-6px) scaleY(1.2);
+  }
+  75% {
+    transform: translateX(-15%) translateY(-4px) scaleY(1.15);
+  }
+  100% {
+    transform: translateX(0) translateY(0) scaleY(1);
+  }
+}
+
+.animate-wave {
+  animation: wave 20s ease-in infinite;
+}
+@keyframes slideIn {
+  0% { opacity: 0; transform: translateY(10px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+.animate-slideIn {
+  animation: slideIn 0.4s ease-out forwards;
+}
+
+ @keyframes bounce-slow {
+   0%, 100% { transform: translateY(0); }
+   50% { transform: translateY(-8px); }
+ }
+ .animate-bounce-slow {
+   animation: bounce-slow 3s infinite;
+ }
+
+ @keyframes bounce-subtle {
+   0%, 100% { transform: translateY(0); }
+   50% { transform: translateY(-3px); }
+ }
+ .animate-bounce-subtle {
+   animation: bounce-subtle 4s ease-in-out infinite;
+ }
+ @layer utilities {
+  .text-glow {
+    text-shadow: 0 0 8px rgba(255, 255, 255, 0.6);
+  }
+
+  .text-neon {
+    text-shadow: 0 0 5px #22d3ee,
+                 0 0 10px #22d3ee,
+                 0 0 20px #22d3ee;
+  }
+}
+
+@keyframes subtle-bounce {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-8px); } /* adjust -8px for how high it bounces */
+}
+
+.animate-subtle-bounce {
+  animation: subtle-bounce 6s ease-in-out infinite;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+/* Prevent white autofill background */
+input:-webkit-autofill,
+input:-webkit-autofill:hover, 
+input:-webkit-autofill:focus, 
+input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0px 1000px #1f2937 inset !important; /* same as bg-gray-800 */
+  -webkit-text-fill-color: #e5e7eb !important; /* same as text-gray-200 */
+  transition: background-color 9999s ease-in-out 0s;
+}
+
+/* globals.css */
+@import "react-calendar/dist/Calendar.css";
