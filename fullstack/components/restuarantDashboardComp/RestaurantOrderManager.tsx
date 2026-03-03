@@ -8,6 +8,7 @@ import { ChevronRight, Package, CheckCircle2, Camera, Image as ImageIcon, X, Mes
 import { doc, updateDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import OrderChat, { ChatButton } from '@/components/OrderChat';
+import LoadingScreen from '@/components/ui/LoadingScreen';
 
 const statusFlow: { key: OrderStatus; label: string; color: string }[] = [
   { key: 'placed', label: 'Placed', color: 'bg-yellow-600' },
@@ -115,8 +116,8 @@ export default function RestaurantOrderManager({ restaurantId }: { restaurantId:
 
   if (loading) {
     return (
-      <div className="p-6 bg-gray-800 rounded-2xl border border-gray-800">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white mx-auto" />
+      <div className="rounded-2xl border border-gray-800 bg-gray-900/70">
+        <LoadingScreen variant="section" title="Loading orders" />
       </div>
     );
   }

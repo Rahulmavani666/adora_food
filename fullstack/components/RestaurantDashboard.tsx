@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { Order, OrderStatus } from '../lib/types';
 import { orderService } from '../lib/firebase-services';
+import LoadingScreen from './ui/LoadingScreen';
 import { toast } from 'sonner';
 
 interface RestaurantDashboardProps {
@@ -127,11 +128,7 @@ export default function RestaurantDashboard({
   };
 
   if (loading) {
-    return (
-      <div className="flex justify-center items-center min-h-screen">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
-      </div>
-    );
+    return <LoadingScreen variant="fullscreen" title="Loading Orders" subtitle="Fetching your restaurant data…" />;
   }
 
   return (

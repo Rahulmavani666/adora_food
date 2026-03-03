@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { SurplusListing, Order, OrderItem } from '../lib/types';
 import { listingService, orderService } from '../lib/firebase-services';
+import LoadingScreen from './ui/LoadingScreen';
 import { toast } from 'sonner';
 import OrderTrackingButton from './OrderTrackingButton';
 
@@ -111,11 +112,7 @@ export default function ClientDashboard({
   };
 
   if (loading) {
-    return (
-      <div className="flex justify-center items-center min-h-screen">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
-      </div>
-    );
+    return <LoadingScreen variant="fullscreen" title="Loading Food" subtitle="Finding available surplus near you…" />;
   }
 
   return (

@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { Order, OrderStatus } from '../lib/types';
 import { orderService } from '../lib/firebase-services';
 import { CheckCircle, Clock, XCircle, Truck, Package, Home } from 'lucide-react';
+import LoadingScreen from './ui/LoadingScreen';
 
 interface OrderTrackerProps {
   orderId: string;
@@ -73,11 +74,7 @@ export default function OrderTracker({ orderId, onClose }: OrderTrackerProps) {
   };
 
   if (loading) {
-    return (
-      <div className="flex justify-center items-center min-h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-      </div>
-    );
+    return <LoadingScreen variant="section" title="Tracking your order" />;
   }
 
   if (!order) {

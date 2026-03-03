@@ -3,7 +3,7 @@ import { FaFacebookF, FaInstagram, FaTwitter, FaLinkedinIn } from "react-icons/f
 
 export default function Footer() {
   return (
-    <footer className="relative bg-zinc-800/70 backdrop-blur-md border-t border-white/10 text-white py-10 overflow-hidden">
+    <footer id="contact" className="relative bg-zinc-800/70 backdrop-blur-md border-t border-white/10 text-white py-10 overflow-hidden">
       
       {/* Gradient Glow Effect */}
       {/* <div className="absolute -top-16 left-1/2 -translate-x-1/2 w-[500px] h-[200px] bg-[#9450a3] blur-3xl rounded-full pointer-events-none"></div> */}

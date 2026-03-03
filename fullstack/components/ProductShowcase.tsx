@@ -28,7 +28,7 @@ export default function ProductShowcase(){
                     Our Product Interface
                 </h1>
                 <p className="mb-10 max-w-4xl text-center text-white/80 text-md font-light "> 
-                    Lorem ipsum dolor sit, amet consectetur adipisicing elit. Deleniti maiores voluptas delectus illum voluptate sunt asperiores et quidem sint blanditiis, sapiente sit ipsum exercitationem ut fuga harum voluptates beatae doloribus!
+                Discover a seamless experience designed to streamline your workflow and boost productivity. Our intuitive interface puts powerful features at your fingertips, enabling you to accomplish more in less time. Join thousands of satisfied users who've transformed their operations with our innovative solution.
                 </p>
                 <motion.div
                  style={{

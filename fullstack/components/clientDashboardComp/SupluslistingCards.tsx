@@ -56,8 +56,6 @@ export default function SurplusListingCard({ clientId, clientName, clientPhone, 
       setListings(data);
       setLoading(false);
     });
-    // Auto-expire stale listings on mount
-    listingService.expireStaleListings().catch(console.error);
     return () => unsub();
   }, []);
 
