@@ -7,7 +7,7 @@ import { Badge } from "../ui/badge";
 import { orderService, listingService, reviewService } from "@/lib/firebase-services";
 import type { Order, OrderStatus, OrderItem } from "@/lib/types";
 import { ORDER_STATUS_FLOW } from "@/lib/types";
-import { CheckCircle2, Circle, RotateCcw, Clock, XCircle, Star, MessageCircle, CreditCard, Banknote } from "lucide-react";
+import { CheckCircle2, Circle, RotateCcw, Clock, XCircle, Star, MessageCircle, CreditCard, Banknote, Smartphone } from "lucide-react";
 import TrackingSection from "./Tracking";
 import ReviewModal from "./ReviewModal";
 import { QRCodeInline } from "@/components/QRCodeDisplay";
@@ -183,10 +183,17 @@ export default function ClientOrders({ clientId }: { clientId: string }) {
                           ? 'bg-yellow-500/15 text-yellow-400'
                           : order.payment.status === 'failed'
                           ? 'bg-rose-500/15 text-rose-400'
-                          : 'bg-gray-500/15 text-gray-400'
+                          : 'bg-amber-500/15 text-amber-400'
                       }`}>
-                        <CreditCard size={10} />
-                        {order.payment.status === 'paid' ? 'Paid Online' : order.payment.status.charAt(0).toUpperCase() + order.payment.status.slice(1)}
+                        {order.payment.method === 'upi' ? (
+                          <><Smartphone size={10} /> {order.payment.status === 'paid' ? 'Paid via UPI' : 'UPI — ' + order.payment.status}</>
+                        ) : order.payment.method === 'cod' ? (
+                          <><Banknote size={10} /> {order.payment.status === 'pending' ? 'Cash on Delivery' : 'COD — ' + order.payment.status}</>
+                        ) : order.payment.method === 'razorpay' ? (
+                          <><CreditCard size={10} /> {order.payment.status === 'paid' ? 'Paid Online' : order.payment.status.charAt(0).toUpperCase() + order.payment.status.slice(1)}</>
+                        ) : (
+                          <><CreditCard size={10} /> {order.payment.status.charAt(0).toUpperCase() + order.payment.status.slice(1)}</>
+                        )}
                       </span>
                     ) : (
                       <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-medium bg-gray-500/15 text-gray-400">
@@ -194,11 +201,11 @@ export default function ClientOrders({ clientId }: { clientId: string }) {
                       </span>
                     )}
                     {order.otp && (
-                      <p className="flex items-center gap-1.5">
+                      <div className="flex items-center gap-1.5">
                         <span className="text-gray-500">OTP:</span>
                         <span className="text-violet-300 font-mono font-bold">{order.otp}</span>
                         <QRCodeInline orderId={order.id} otp={order.otp} />
-                      </p>
+                      </div>
                     )}
                   </div>
                   <p className="text-gray-500 text-xs">

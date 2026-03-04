@@ -83,7 +83,7 @@ export interface PlatformFees {
 }
 
 export type PaymentStatus = 'pending' | 'paid' | 'failed' | 'refunded';
-export type PaymentMethod = 'razorpay' | 'pay_on_pickup';
+export type PaymentMethod = 'razorpay' | 'upi' | 'cod' | 'pay_on_pickup';
 
 export interface PaymentInfo {
   method: PaymentMethod;

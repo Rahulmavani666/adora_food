@@ -24,6 +24,8 @@ import AcceptAndReject from "@/components/restuarantDashboardComp/AcceptAndRejec
 import RestaurantOrderManager from "@/components/restuarantDashboardComp/RestaurantOrderManager";
 import RestaurantAnalytics from "@/components/restuarantDashboardComp/RestaurantAnalytics";
 import LoadingScreen from "@/components/ui/LoadingScreen";
+import EmailVerification from "@/components/EmailVerification";
+import ProfileCompletion from "@/components/ProfileCompletion";
 import dynamic from "next/dynamic";
 
 const QRScanner = dynamic(() => import("@/components/QRScanner"), { ssr: false });
@@ -239,7 +241,7 @@ export default function RestaurantDashboard() {
           ))}
         </nav>
         {/* Sidebar footer */}
-        <div className="shrink-0 p-4 border-t border-gray-800">
+        <div className="shrink-0 p-4 border-t border-gray-800 space-y-3">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-full bg-violet-600/70 flex items-center justify-center text-xs uppercase">
               {displayName[0] || "R"}
@@ -249,6 +251,8 @@ export default function RestaurantDashboard() {
               <p className="text-[10px] text-gray-500">Restaurant</p>
             </div>
           </div>
+          <ProfileCompletion userId={user.uid} role="business" />
+          <EmailVerification userId={user.uid} />
         </div>
       </aside>
 

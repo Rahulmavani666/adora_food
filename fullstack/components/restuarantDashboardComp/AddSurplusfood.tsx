@@ -3,7 +3,6 @@
 import { useState, useRef } from "react";
 import { ImagePlus, X, IndianRupee, MapPin, Locate } from "lucide-react";
 import { listingService } from "@/lib/firebase-services";
-import { DEFAULT_DISCOUNT } from "@/lib/types";
 import type { FreshnessStatus, StorageCondition } from "@/lib/types";
 import { toast } from "sonner";
 
@@ -18,6 +17,7 @@ export default function RestaurantCreateListing({ uid, restaurantName }: { uid: 
     storage: "Refrigerated" as StorageCondition,
     dateAdded: "",
     originalPrice: "",
+    discountPercent: "50",
     location: "",
     latitude: "",
     longitude: "",
@@ -58,8 +58,9 @@ export default function RestaurantCreateListing({ uid, restaurantName }: { uid: 
     );
   };
 
+  const discountFraction = Number(form.discountPercent) / 100;
   const surplusPrice = form.originalPrice
-    ? Math.round(Number(form.originalPrice) * DEFAULT_DISCOUNT * 100) / 100
+    ? Math.round(Number(form.originalPrice) * (1 - discountFraction) * 100) / 100
     : 0;
 
   const [imageFile, setImageFile] = useState<File | null>(null);
@@ -142,7 +143,7 @@ export default function RestaurantCreateListing({ uid, restaurantName }: { uid: 
       });
 
       toast.success("Listing added! Clients have been notified.");
-      setForm({ item: "", qtyKg: "", unit: "kg", freshness: "Fresh", windowStart: "", windowEnd: "", storage: "Refrigerated", dateAdded: "", originalPrice: "", location: "", latitude: "", longitude: "" });
+      setForm({ item: "", qtyKg: "", unit: "kg", freshness: "Fresh", windowStart: "", windowEnd: "", storage: "Refrigerated", dateAdded: "", originalPrice: "", discountPercent: "50", location: "", latitude: "", longitude: "" });
       clearImage();
     } catch (err) {
       console.error(err);
@@ -271,9 +272,28 @@ export default function RestaurantCreateListing({ uid, restaurantName }: { uid: 
               className="w-full bg-transparent px-2 py-2 text-sm outline-none"
             />
           </div>
-          {surplusPrice > 0 && (
+        </div>
+
+        {/* Discount Percentage */}
+        <div>
+          <label className="block text-xs text-gray-400 mb-1">Discount (%)</label>
+          <select
+            value={form.discountPercent}
+            onChange={(e) => setForm({ ...form, discountPercent: e.target.value })}
+            className="w-full rounded-lg bg-gray-800 border border-gray-700 px-3 py-2 text-sm outline-none focus:border-violet-500"
+          >
+            <option value="0">No Offer</option>
+            {[10, 20, 30, 40, 50, 60, 70, 80].map((pct) => (
+              <option key={pct} value={String(pct)}>
+                {pct}% off
+              </option>
+            ))}
+          </select>
+          {form.originalPrice && (
             <p className="text-xs text-emerald-400 mt-1">
-              Surplus price: ₹{surplusPrice} (50% off)
+              {Number(form.discountPercent) === 0
+                ? `Listing price: ₹${Number(form.originalPrice)} (No offer)`
+                : `Surplus price: ₹${surplusPrice} (${form.discountPercent}% off)`}
             </p>
           )}
         </div>

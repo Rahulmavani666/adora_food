@@ -11,6 +11,7 @@ import CallToAction from "@/components/Cta";
 import FAQ from "@/components/FAQ";
 import Footer from "@/components/Footer";
 
+export const dynamic = 'force-dynamic';
 
 export default function Home() {
   return(
