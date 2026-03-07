@@ -39,9 +39,9 @@ export default function HowItWorks() {
       <div className="absolute inset-0 opacity-5">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(120,119,198,0.3),transparent_50%)]"></div>
       </div>
-      
+
       <div className="max-w-6xl mx-auto px-6 relative z-10">
-        <motion.h2 
+        <motion.h2
           initial={{ opacity: 0, y: 30 }}
           animate={inView ? { opacity: 1, y: 0 } : {}}
           transition={{ duration: 0.8, ease: "easeOut" }}
@@ -50,7 +50,7 @@ export default function HowItWorks() {
           How It Works
         </motion.h2>
 
-     
+
 
         <div className="relative flex flex-col md:flex-row items-center md:justify-between">
           {/* Growing Horizontal Line for Desktop */}
@@ -62,23 +62,23 @@ export default function HowItWorks() {
               transition={{ duration: 1.5, ease: "easeInOut", delay: 0.3 }}
             />
           </div>
-         
+
 
           {steps.map((step, index) => (
             <motion.div
               key={index}
               initial={{ opacity: 0, y: 50, scale: 0.9 }}
               animate={inView ? { opacity: 1, y: 0, scale: 1 } : {}}
-              transition={{ 
-                duration: 0.8, 
+              transition={{
+                duration: 0.8,
                 delay: 0.5 + index * 0.3,
                 ease: "easeOut"
               }}
               className="relative z-10 flex flex-col items-center text-center mb-12 md:mb-0 max-w-xs"
             >
-              <motion.div 
+              <motion.div
                 className="flex items-center justify-center w-20 h-20 bg-gradient-to-br from-gray-800 to-gray-900 rounded-full shadow-lg border border-gray-600 mb-6 relative overflow-hidden"
-                whileHover={{ 
+                whileHover={{
                   scale: 1.05,
                   boxShadow: "0 10px 30px rgba(0,0,0,0.3)"
                 }}
@@ -88,7 +88,7 @@ export default function HowItWorks() {
                 <div className="absolute inset-0 bg-gradient-to-br from-transparent via-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                 {step.icon}
               </motion.div>
-              <motion.h3 
+              <motion.h3
                 className="text-lg font-semibold mb-2"
                 initial={{ opacity: 0 }}
                 animate={inView ? { opacity: 1 } : {}}
@@ -96,7 +96,7 @@ export default function HowItWorks() {
               >
                 {step.title}
               </motion.h3>
-              <motion.p 
+              <motion.p
                 className="text-gray-400"
                 initial={{ opacity: 0 }}
                 animate={inView ? { opacity: 1 } : {}}

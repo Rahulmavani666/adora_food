@@ -85,6 +85,7 @@ export default function PhoneVerification({ userId }: PhoneVerificationProps) {
   }, []);
 
   const setupRecaptcha = useCallback(() => {
+    // Clean up any existing verifier
     if (recaptchaVerifierRef.current) {
       try {
         recaptchaVerifierRef.current.clear();
@@ -96,6 +97,9 @@ export default function PhoneVerification({ userId }: PhoneVerificationProps) {
 
     if (!recaptchaContainerRef.current) return;
 
+    // Clear the container's innerHTML to avoid duplicate widgets
+    recaptchaContainerRef.current.innerHTML = "";
+
     recaptchaVerifierRef.current = new RecaptchaVerifier(
       auth,
       recaptchaContainerRef.current,
@@ -106,6 +110,11 @@ export default function PhoneVerification({ userId }: PhoneVerificationProps) {
         },
         "expired-callback": () => {
           toast.error("reCAPTCHA expired. Please try again.");
+          // Clear so it can be re-created on next attempt
+          if (recaptchaVerifierRef.current) {
+            try { recaptchaVerifierRef.current.clear(); } catch {}
+            recaptchaVerifierRef.current = null;
+          }
         },
       }
     );
@@ -129,6 +138,9 @@ export default function PhoneVerification({ userId }: PhoneVerificationProps) {
         return;
       }
 
+      // Explicitly render the reCAPTCHA widget before using it
+      await recaptchaVerifierRef.current.render();
+
       const result = await signInWithPhoneNumber(
         auth,
         formatted,
@@ -140,6 +152,11 @@ export default function PhoneVerification({ userId }: PhoneVerificationProps) {
       toast.success(`OTP sent to ${formatted}`);
     } catch (err: unknown) {
       console.error("OTP send error:", err);
+      // Clean up recaptcha on error so it can be re-created
+      if (recaptchaVerifierRef.current) {
+        try { recaptchaVerifierRef.current.clear(); } catch {}
+        recaptchaVerifierRef.current = null;
+      }
       const errCode = (err as { code?: string })?.code;
       if (errCode === "auth/too-many-requests") {
         toast.error("Too many requests. Please try again later.");
@@ -267,6 +284,11 @@ export default function PhoneVerification({ userId }: PhoneVerificationProps) {
     setConfirmationResult(null);
     setCountdown(0);
     setPhoneNumber("");
+    // Clean up recaptcha verifier
+    if (recaptchaVerifierRef.current) {
+      try { recaptchaVerifierRef.current.clear(); } catch {}
+      recaptchaVerifierRef.current = null;
+    }
   };
 
   const openModal = () => {

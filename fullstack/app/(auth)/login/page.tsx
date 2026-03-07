@@ -71,11 +71,16 @@ export default function LoginPage() {
         await setDoc(userRef, {
           fullName: cred.user.displayName || "Google User",
           email: cred.user.email,
+          photoURL: cred.user.photoURL || "",
           role: role,
           createdAt: serverTimestamp(),
         });
       } else {
         role = userDoc.data().role;
+        // Update photoURL if it changed (e.g. user updated their Google profile pic)
+        if (cred.user.photoURL && cred.user.photoURL !== userDoc.data().photoURL) {
+          await setDoc(userRef, { photoURL: cred.user.photoURL }, { merge: true });
+        }
       }
 
       // Redirect based on role

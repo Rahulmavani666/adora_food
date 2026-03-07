@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import {
   LayoutDashboard, Package, CheckCircle2, Users, AlertTriangle, Bell,
   Calendar as CalendarIcon, Clock, Plus, X, Check, BarChart2, Menu, QrCode, Keyboard,
-  ChevronRight
+  ChevronRight, UserCircle, Mail, Phone, MapPin, Building2, Shield, LogOut, Activity
 } from "lucide-react";
 
 import { auth, db } from "@/lib/firebase";
@@ -35,7 +35,7 @@ export default function RestaurantDashboard() {
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
   const [displayName, setDisplayName] = useState("");
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
   const [activeSection, setActiveSection] = useState("overview");
 
   // Live stats
@@ -53,11 +53,29 @@ export default function RestaurantDashboard() {
   // All completed orders for OTP verification
   const [completedOrders, setCompletedOrders] = useState<Order[]>([]);
 
-  // OTP verify modal
   const [verifyOpen, setVerifyOpen] = useState(false);
   const [verifyTarget, setVerifyTarget] = useState<Order | null>(null);
   const [otpInput, setOtpInput] = useState("");
   const [verifyMode, setVerifyMode] = useState<"manual" | "scan">("manual");
+  const [userEmail, setUserEmail] = useState("");
+  const [userPhoto, setUserPhoto] = useState<string | null>(null);
+  const [profileData, setProfileData] = useState<{
+    fullName: string;
+    email: string;
+    phone: string;
+    address: string;
+    city: string;
+    state: string;
+    pincode: string;
+    orgName: string;
+    createdAt: string;
+    emailVerified: boolean;
+    phoneVerified: boolean;
+    verifiedEmail: string;
+    verifiedPhone: string;
+    emailVerifiedAt: string;
+    photoURL: string;
+  } | null>(null);
 
   const today = new Date();
 
@@ -85,7 +103,28 @@ export default function RestaurantDashboard() {
         const snap = await getDoc(doc(db, "users", u.uid));
         if (snap.exists() && snap.data().role === "business") {
           setUser(u);
-          setDisplayName(snap.data().displayName || u.displayName || "Restaurant");
+          const d = snap.data();
+          setDisplayName(d.displayName || d.fullName || u.displayName || "Restaurant");
+          setUserEmail(d.email || u.email || "");
+          const photo = d.photoURL || u.photoURL || null;
+          setUserPhoto(photo);
+          setProfileData({
+            fullName: d.fullName || d.displayName || u.displayName || "",
+            email: d.email || u.email || "",
+            phone: d.phone || d.phoneNumber || "",
+            address: d.address || "",
+            city: d.city || "",
+            state: d.state || "",
+            pincode: d.pincode || "",
+            orgName: d.orgName || "",
+            createdAt: d.createdAt?.toDate?.()?.toLocaleDateString() || d.createdAt || "N/A",
+            emailVerified: !!d.emailVerified,
+            phoneVerified: !!d.phoneVerified,
+            verifiedEmail: d.verifiedEmail || "",
+            verifiedPhone: d.phoneNumber || "",
+            emailVerifiedAt: d.emailVerifiedAt || "",
+            photoURL: photo || "",
+          });
         } else {
           router.push("/Clientdashboard");
         }
@@ -145,7 +184,9 @@ export default function RestaurantDashboard() {
   const mainRef = useRef<HTMLDivElement>(null);
   const navigateTo = useCallback((sectionId: string) => {
     setActiveSection(sectionId);
-    setSidebarOpen(false);
+    if (window.innerWidth < 1024) {
+      setSidebarOpen(false);
+    }
     // Scroll main content to top on section change
     mainRef.current?.scrollTo({ top: 0, behavior: "smooth" });
   }, []);
@@ -202,12 +243,17 @@ export default function RestaurantDashboard() {
 
       {/* Sidebar */}
       <aside
-        className={`${sidebarOpen ? "translate-x-0" : "-translate-x-full"
-          } fixed lg:sticky lg:top-0 lg:translate-x-0 inset-y-0 left-0 w-72 h-screen bg-gray-900/95 backdrop-blur border-r border-gray-800 transition-transform duration-300 z-40 flex flex-col`}
+        className={`${sidebarOpen ? "w-72 translate-x-0" : "w-0 -translate-x-full"
+          } fixed lg:sticky lg:top-0 inset-y-0 left-0 h-screen bg-gray-900/95 backdrop-blur border-r border-gray-800 transition-all duration-300 z-40 flex flex-col overflow-hidden whitespace-nowrap`}
       >
-        <div className="h-16 px-5 flex items-center gap-2 border-b border-gray-800 shrink-0">
-          <LayoutDashboard className="text-violet-400" />
-          <span className="font-semibold">Restaurant Dashboard</span>
+        <div className="h-16 px-5 flex items-center justify-between border-b border-gray-800 shrink-0 min-w-[18rem]">
+          <div className="flex items-center gap-2">
+            <LayoutDashboard className="text-violet-400" />
+            <span className="font-semibold">Restaurant Dashboard</span>
+          </div>
+          <button className="p-1.5 rounded-lg hover:bg-white/10 text-gray-400 transition" onClick={() => setSidebarOpen(false)}>
+            <X size={18} />
+          </button>
         </div>
         <nav className="flex-1 overflow-y-auto p-4 space-y-5 scrollbar-thin">
           {sidebarGroups.map((group) => (
@@ -220,11 +266,10 @@ export default function RestaurantDashboard() {
                     <button
                       key={s.id}
                       onClick={() => navigateTo(s.id)}
-                      className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 text-left group relative ${
-                        isActive
-                          ? "bg-violet-600/20 text-violet-300 shadow-sm shadow-violet-500/5"
-                          : "text-gray-400 hover:bg-white/5 hover:text-white"
-                      }`}
+                      className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 text-left group relative ${isActive
+                        ? "bg-violet-600/20 text-violet-300 shadow-sm shadow-violet-500/5"
+                        : "text-gray-400 hover:bg-white/5 hover:text-white"
+                        }`}
                     >
                       {/* Active indicator bar */}
                       {isActive && (
@@ -232,7 +277,6 @@ export default function RestaurantDashboard() {
                       )}
                       <s.icon size={18} className={`shrink-0 transition-colors duration-200 ${isActive ? "text-violet-400" : "text-gray-500 group-hover:text-gray-300"}`} />
                       <span className="flex-1 text-sm">{s.name}</span>
-                      {isActive && <ChevronRight size={14} className="text-violet-400/60" />}
                     </button>
                   );
                 })}
@@ -240,17 +284,51 @@ export default function RestaurantDashboard() {
             </div>
           ))}
         </nav>
+        {/* Sidebar footer — Profile popup */}
         {/* Sidebar footer */}
         <div className="shrink-0 p-4 border-t border-gray-800 space-y-3">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-full bg-violet-600/70 flex items-center justify-center text-xs uppercase">
-              {displayName[0] || "R"}
+          <button
+            onClick={() => navigateTo("profile")}
+            className={`w-full flex items-center gap-3 rounded-xl p-2.5 transition-all duration-200 group ${activeSection === "profile"
+              ? "bg-violet-600/10 ring-1 ring-violet-500/30"
+              : "hover:bg-white/5"
+              }`}
+          >
+            <div className="relative shrink-0">
+              {userPhoto ? (
+                <img
+                  src={userPhoto}
+                  alt={displayName}
+                  className="w-10 h-10 rounded-full object-cover ring-2 ring-violet-500/30 group-hover:ring-violet-500/50 transition-all shadow-md"
+                />
+              ) : (
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-violet-600 to-violet-800 flex items-center justify-center text-sm font-bold uppercase ring-2 ring-violet-500/30 group-hover:ring-violet-500/50 transition-all shadow-md">
+                  {displayName[0] || "R"}
+                </div>
+              )}
+              {profileData?.emailVerified && (
+                <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full bg-emerald-500 flex items-center justify-center border-2 border-gray-900">
+                  <CheckCircle2 size={10} className="text-white" />
+                </div>
+              )}
             </div>
-            <div className="min-w-0 flex-1">
-              <p className="text-sm font-medium truncate">{displayName}</p>
-              <p className="text-[10px] text-gray-500">Restaurant</p>
+            <div className="min-w-0 flex-1 text-left">
+              <p className="text-sm font-semibold truncate text-white">{displayName}</p>
+              <p className="text-[10px] text-gray-500 truncate flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block" />
+                Online
+              </p>
             </div>
-          </div>
+            <div className={`shrink-0 p-1 rounded-md transition ${activeSection === "profile" ? "bg-violet-600/20" : ""}`}>
+              <ChevronRight
+                size={14}
+                className={`shrink-0 transition ${activeSection === "profile"
+                  ? "text-violet-400"
+                  : "text-gray-500 group-hover:text-gray-300"
+                  }`}
+              />
+            </div>
+          </button>
           <ProfileCompletion userId={user.uid} role="business" />
           <EmailVerification userId={user.uid} />
         </div>
@@ -261,8 +339,8 @@ export default function RestaurantDashboard() {
         {/* Top bar */}
         <header className="sticky top-0 z-30 h-14 bg-gray-900/70 backdrop-blur border-b border-gray-800 flex items-center justify-between px-4 shrink-0">
           <div className="flex items-center gap-3">
-            <button className="lg:hidden p-2 rounded-lg hover:bg-white/10 transition" onClick={() => setSidebarOpen((s) => !s)}>
-              {sidebarOpen ? <X size={20} /> : <Menu size={20} />}
+            <button className={`${sidebarOpen ? 'lg:hidden' : ''} p-2 rounded-lg hover:bg-white/10 transition`} onClick={() => setSidebarOpen(true)}>
+              <Menu size={20} />
             </button>
             {/* Breadcrumb */}
             <div className="hidden sm:flex items-center gap-1.5 text-sm text-gray-400">
@@ -371,6 +449,153 @@ export default function RestaurantDashboard() {
             {/* ---- Analytics ---- */}
             {activeSection === "analytics" && <RestaurantAnalytics restaurantId={user.uid} />}
 
+            {/* ---- Profile Section ---- */}
+            {activeSection === "profile" && (
+              <section className="flex flex-col gap-6">
+                {/* Profile Header Card */}
+                <div className="rounded-2xl bg-gradient-to-r from-violet-600/20 via-violet-600/10 to-emerald-600/10 border border-violet-500/20 p-8">
+                  <div className="flex flex-col sm:flex-row items-center gap-6">
+                    <div className="relative">
+                      {userPhoto ? (
+                        <img
+                          src={userPhoto}
+                          alt={displayName}
+                          className="w-28 h-28 rounded-2xl object-cover shadow-xl shadow-violet-900/40 border-2 border-violet-500/30"
+                        />
+                      ) : (
+                        <div className="w-28 h-28 rounded-2xl bg-gradient-to-br from-violet-600 to-violet-800 flex items-center justify-center text-4xl font-bold uppercase shadow-xl shadow-violet-900/40 border-2 border-violet-500/30">
+                          {displayName[0] || "R"}
+                        </div>
+                      )}
+                      {/* Verified badge on photo */}
+                      {profileData?.emailVerified && (
+                        <div className="absolute -bottom-1.5 -right-1.5 w-7 h-7 rounded-full bg-emerald-500 flex items-center justify-center border-2 border-gray-950 shadow-lg">
+                          <CheckCircle2 size={16} className="text-white" />
+                        </div>
+                      )}
+                    </div>
+                    <div className="text-center sm:text-left flex-1">
+                      <h2 className="text-2xl font-bold text-white">{profileData?.fullName || displayName}</h2>
+                      <p className="text-sm text-gray-400 mt-1">{profileData?.email}</p>
+                      <div className="flex flex-wrap items-center gap-2 mt-3">
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-violet-600/20 text-violet-300 text-xs font-medium border border-violet-500/20">
+                          <Shield size={12} />
+                          Restaurant Account
+                        </span>
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-600/20 text-emerald-300 text-xs font-medium border border-emerald-500/20">
+                          <Clock size={12} />
+                          Joined {profileData?.createdAt}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Verification Status Banner */}
+                <div className="rounded-2xl border border-gray-800 bg-gray-900/50 p-5">
+                  <h3 className="text-sm font-semibold text-gray-300 mb-4 flex items-center gap-2">
+                    <Shield size={16} className="text-violet-400" />
+                    Verification Status
+                  </h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {/* Email Verification */}
+                    <div className={`flex items-center gap-3 p-3.5 rounded-xl border transition ${profileData?.emailVerified
+                      ? "bg-emerald-600/10 border-emerald-500/20"
+                      : "bg-amber-600/10 border-amber-500/20"
+                      }`}>
+                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${profileData?.emailVerified ? "bg-emerald-600/20" : "bg-amber-600/20"
+                        }`}>
+                        {profileData?.emailVerified
+                          ? <CheckCircle2 size={20} className="text-emerald-400" />
+                          : <AlertTriangle size={20} className="text-amber-400" />
+                        }
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className={`text-xs font-semibold ${profileData?.emailVerified ? "text-emerald-300" : "text-amber-300"
+                          }`}>
+                          {profileData?.emailVerified ? "Email Verified" : "Email Not Verified"}
+                        </p>
+                        <p className="text-[11px] text-gray-500 truncate">
+                          {profileData?.emailVerified
+                            ? profileData?.verifiedEmail || profileData?.email
+                            : "Verify to secure your account"}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Phone Verification */}
+                    <div className={`flex items-center gap-3 p-3.5 rounded-xl border transition ${profileData?.phoneVerified
+                      ? "bg-emerald-600/10 border-emerald-500/20"
+                      : "bg-amber-600/10 border-amber-500/20"
+                      }`}>
+                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${profileData?.phoneVerified ? "bg-emerald-600/20" : "bg-amber-600/20"
+                        }`}>
+                        {profileData?.phoneVerified
+                          ? <CheckCircle2 size={20} className="text-emerald-400" />
+                          : <AlertTriangle size={20} className="text-amber-400" />
+                        }
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className={`text-xs font-semibold ${profileData?.phoneVerified ? "text-emerald-300" : "text-amber-300"
+                          }`}>
+                          {profileData?.phoneVerified ? "Phone Verified" : "Phone Not Verified"}
+                        </p>
+                        <p className="text-[11px] text-gray-500 truncate">
+                          {profileData?.phoneVerified
+                            ? profileData?.verifiedPhone
+                            : "Verify for order updates"}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Details Grid */}
+                <div className="rounded-2xl border border-gray-800 bg-gray-900/50 p-5">
+                  <h3 className="text-sm font-semibold text-gray-300 mb-4 flex items-center gap-2">
+                    <UserCircle size={16} className="text-violet-400" />
+                    Restaurant Details
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <ProfileCard icon={<UserCircle size={20} />} label="Full Name" value={profileData?.fullName || ""} accent="violet" verified={!!profileData?.fullName} />
+                    <ProfileCard icon={<Mail size={20} />} label="Email Address" value={profileData?.email || ""} accent="blue" verified={!!profileData?.emailVerified} verifiedLabel="Verified" />
+                    <ProfileCard icon={<Phone size={20} />} label="Phone Number" value={profileData?.phone || "Not provided"} accent="emerald" empty={!profileData?.phone} verified={!!profileData?.phoneVerified} verifiedLabel="Verified" />
+                    <ProfileCard icon={<MapPin size={20} />} label="Address" value={profileData?.address || "Not provided"} accent="amber" empty={!profileData?.address} verified={!!profileData?.address} />
+                    <ProfileCard icon={<Building2 size={20} />} label="City" value={profileData?.city || "Not provided"} accent="violet" empty={!profileData?.city} verified={!!profileData?.city} />
+                    <ProfileCard icon={<MapPin size={20} />} label="State" value={profileData?.state || "Not provided"} accent="blue" empty={!profileData?.state} verified={!!profileData?.state} />
+                    <ProfileCard icon={<MapPin size={20} />} label="Pincode" value={profileData?.pincode || "Not provided"} accent="emerald" empty={!profileData?.pincode} verified={!!profileData?.pincode} />
+                  </div>
+                </div>
+
+                {/* Quick Stats on Profile Page */}
+                <div className="rounded-2xl border border-gray-800 bg-gray-900/50 p-6">
+                  <h3 className="text-sm font-semibold text-gray-300 mb-4 flex items-center gap-2">
+                    <Activity size={16} className="text-violet-400" />
+                    Your Impact
+                  </h3>
+                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                    <MiniStat label="Total Orders" value={stats.totalOrders} />
+                    <MiniStat label="Food Saved" value={`${stats.foodSavedKg} kg`} />
+                    <MiniStat label="Earnings" value={`₹${stats.totalEarnings.toFixed(0)}`} />
+                    <MiniStat label="People Served" value={stats.peopleServed} />
+                  </div>
+                </div>
+
+                {/* Actions */}
+                <div className="flex flex-wrap gap-3">
+                  <ProfileCompletion userId={user.uid} role="business" />
+                  <EmailVerification userId={user.uid} />
+                  <button
+                    onClick={() => signOut(auth)}
+                    className="inline-flex items-center gap-2 rounded-xl bg-red-600/10 hover:bg-red-600/20 border border-red-500/20 px-5 py-2.5 text-sm font-medium transition-colors text-red-400"
+                  >
+                    <LogOut size={16} />
+                    Sign Out
+                  </button>
+                </div>
+              </section>
+            )}
+
             {/* ---- Event Integration ---- */}
             {activeSection === "events" && (
               <EventIntegration
@@ -425,17 +650,15 @@ export default function RestaurantDashboard() {
             <div className="flex rounded-lg bg-gray-800 border border-gray-700 p-0.5 mb-4">
               <button
                 onClick={() => setVerifyMode("manual")}
-                className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs rounded-md transition ${
-                  verifyMode === "manual" ? "bg-violet-600 text-white" : "text-gray-400 hover:text-white"
-                }`}
+                className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs rounded-md transition ${verifyMode === "manual" ? "bg-violet-600 text-white" : "text-gray-400 hover:text-white"
+                  }`}
               >
                 <Keyboard size={12} /> Enter OTP
               </button>
               <button
                 onClick={() => setVerifyMode("scan")}
-                className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs rounded-md transition ${
-                  verifyMode === "scan" ? "bg-violet-600 text-white" : "text-gray-400 hover:text-white"
-                }`}
+                className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs rounded-md transition ${verifyMode === "scan" ? "bg-violet-600 text-white" : "text-gray-400 hover:text-white"
+                  }`}
               >
                 <QrCode size={12} /> Scan QR
               </button>
@@ -495,6 +718,53 @@ function KPI({ icon, label, value }: { icon: React.ReactNode; label: string; val
           <div className="text-xl font-semibold">{value}</div>
         </div>
       </div>
+    </div>
+  );
+}
+
+function ProfileCard({ icon, label, value, accent = "violet", empty = false, verified = false, verifiedLabel }: { icon: React.ReactNode; label: string; value: string; accent?: string; empty?: boolean; verified?: boolean; verifiedLabel?: string }) {
+  const accentColors: Record<string, string> = {
+    violet: "bg-violet-600/15 text-violet-400",
+    blue: "bg-blue-600/15 text-blue-400",
+    emerald: "bg-emerald-600/15 text-emerald-400",
+    amber: "bg-amber-600/15 text-amber-400",
+  };
+  return (
+    <div className="rounded-xl border border-gray-800 bg-gray-900 p-4 hover:bg-gray-800 transition group">
+      <div className="flex items-start gap-3">
+        <div className={`w-9 h-9 rounded-lg ${accentColors[accent] || accentColors.violet} flex items-center justify-center shrink-0`}>
+          {icon}
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2 mb-0.5">
+            <p className="text-[10px] uppercase tracking-wider text-gray-500 font-medium">{label}</p>
+            {verified && verifiedLabel && (
+              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-emerald-600/15 text-emerald-400 text-[9px] font-semibold">
+                <CheckCircle2 size={9} />
+                {verifiedLabel}
+              </span>
+            )}
+            {!verified && !empty && !verifiedLabel && (
+              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-emerald-600/10 text-emerald-500/60 text-[9px] font-medium">
+                <CheckCircle2 size={9} />
+                Filled
+              </span>
+            )}
+          </div>
+          <p className={`text-sm font-semibold truncate ${empty ? "text-gray-600 italic" : "text-white"}`}>
+            {value}
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function MiniStat({ label, value }: { label: string; value: string | number }) {
+  return (
+    <div className="text-center p-3 rounded-xl bg-gray-900 border border-gray-800">
+      <p className="text-lg font-bold text-white">{value}</p>
+      <p className="text-[10px] text-gray-500 mt-0.5">{label}</p>
     </div>
   );
 }

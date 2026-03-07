@@ -8,7 +8,7 @@ import Link from "next/link";
 export default function Hero() {
   return (
     <section id="home" className="relative min-h-screen w-full bg-gradient-to-b from-black/70 via-black/60 to-[#9450a3] overflow-hidden">
-    
+
       <ParticlesBackground />
 
       {/* Background glow orbs */}
@@ -17,10 +17,10 @@ export default function Hero() {
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-blue-500/10 rounded-full blur-[140px] pointer-events-none" />
 
       <div className="relative h-full min-h-screen flex flex-col lg:flex-row items-center justify-center lg:justify-between px-5 sm:px-10 lg:px-20 pt-24 pb-32 lg:pt-0 lg:pb-0 gap-10 lg:gap-8">
-        
+
         {/* Text Content */}
         <div className="space-y-5 sm:space-y-6 text-center lg:text-left max-w-2xl z-10">
-        
+
           <span className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-white leading-tight block">
             Turning Surplus Food into{" "}
             <span className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
@@ -28,13 +28,13 @@ export default function Hero() {
             </span>
             , Not Waste
           </span>
-          
+
           <p className="text-base sm:text-lg lg:text-xl max-w-2xl leading-relaxed bg-gradient-to-r from-pink-300 to-blue-300 bg-clip-text text-transparent">
             Our platform connects Surplus foods to those who need it in real-time reducing waste, saving resources, and building a caring community.
           </p>
-          
-          <Link 
-            href="/signup" 
+
+          <Link
+            href="/signup"
             className="relative z-10 inline-flex gap-2 justify-center items-center rounded-xl border border-white/20 px-6 py-2.5 bg-zinc-900 text-white font-light text-base sm:text-lg hover:bg-zinc-800 transition-colors"
           >
             Sign up <ArrowRight size={18} />
@@ -69,7 +69,7 @@ export default function Hero() {
             className="fill-current text-white/30"
           />
         </svg>
-        
+
         {/* Animated Wave Overlay */}
         <div className="absolute bottom-0 left-0 w-full h-full">
           <div className="w-full h-full bg-gradient-to-t from-[#9450a3] via-[#9450a3]/80 to-transparent animate-wave"></div>
