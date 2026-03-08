@@ -19,6 +19,23 @@ export type FreshnessStatus = 'Fresh' | 'Good' | 'Needs Quick Pickup';
 export type StorageCondition = 'Refrigerated' | 'Room Temp' | 'Frozen';
 export type ListingStatus = 'available' | 'claimed' | 'expired' | 'removed';
 
+// ─── Dietary & Allergen Tags ───
+
+export type DietaryTag = 'vegetarian' | 'vegan' | 'halal' | 'gluten_free' | 'dairy_free' | 'nut_free' | 'jain';
+export type CuisineType = 'Indian' | 'Chinese' | 'Italian' | 'Continental' | 'South Indian' | 'Street Food' | 'Bakery' | 'Other';
+
+export const DIETARY_TAG_LABELS: Record<DietaryTag, string> = {
+  vegetarian: '🟢 Vegetarian',
+  vegan: '🌱 Vegan',
+  halal: '☪️ Halal',
+  gluten_free: '🌾 Gluten Free',
+  dairy_free: '🥛 Dairy Free',
+  nut_free: '🥜 Nut Free',
+  jain: '🙏 Jain',
+};
+
+export const CUISINE_TYPES: CuisineType[] = ['Indian', 'Chinese', 'Italian', 'Continental', 'South Indian', 'Street Food', 'Bakery', 'Other'];
+
 export interface SurplusListing {
   id: string;
   restaurantId: string;
@@ -39,6 +56,9 @@ export interface SurplusListing {
   latitude?: number;
   longitude?: number;
   imageUrl?: string | null;
+  dietaryTags?: DietaryTag[];
+  cuisineType?: CuisineType;
+  allergenInfo?: string;
   status: ListingStatus;
   dateAdded: any;
   lastUpdated: any;
@@ -232,3 +252,72 @@ export interface ChatMessage {
 
 export const PLATFORM_FEE_RATE = 0.05; // 5% platform fee for both sides
 export const DEFAULT_DISCOUNT = 0.5;   // 50% off original price for surplus
+
+// ─── Saved Addresses ───
+
+export interface SavedAddress {
+  id: string;
+  userId: string;
+  label: string;        // 'Home', 'Work', custom
+  address: string;
+  latitude?: number;
+  longitude?: number;
+  isDefault: boolean;
+  createdAt: any;
+}
+
+// ─── Refund / Dispute ───
+
+export type RefundStatus = 'requested' | 'approved' | 'rejected' | 'resolved';
+export type RefundReason = 'wrong_items' | 'quality_issue' | 'missing_items' | 'late_delivery' | 'other';
+
+export interface RefundRequest {
+  id: string;
+  orderId: string;
+  clientId: string;
+  clientName: string;
+  restaurantId: string;
+  restaurantName: string;
+  reason: RefundReason;
+  description: string;
+  amount: number;
+  status: RefundStatus;
+  adminNote?: string;
+  createdAt: any;
+  updatedAt: any;
+}
+
+export const REFUND_REASON_LABELS: Record<RefundReason, string> = {
+  wrong_items: 'Wrong items received',
+  quality_issue: 'Food quality issue',
+  missing_items: 'Missing items',
+  late_delivery: 'Very late delivery',
+  other: 'Other',
+};
+
+// ─── Restaurant Profile ───
+
+export interface RestaurantProfile {
+  id: string;
+  ownerId: string;
+  name: string;
+  description?: string;
+  cuisineTypes?: CuisineType[];
+  fssaiLicense?: string;
+  phone?: string;
+  email?: string;
+  address?: string;
+  latitude?: number;
+  longitude?: number;
+  operatingHours?: {
+    open: string;
+    close: string;
+    daysOff: string[];
+  };
+  imageUrl?: string;
+  avgRating?: number;
+  reviewCount?: number;
+  totalFoodSaved?: number;
+  createdAt: any;
+  updatedAt: any;
+}

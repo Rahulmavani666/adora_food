@@ -1,7 +1,7 @@
 "use client";
 import {
   ShoppingCart, X, Trash2, ShoppingBag, CreditCard, Shield,
-  Banknote, Smartphone, Zap,
+  Banknote, Smartphone, Zap, MessageSquare,
 } from "lucide-react";
 import { useState } from "react";
 import { useCart } from "@/hooks/useCart";
@@ -28,6 +28,7 @@ export default function CartDrawer({ clientId, clientName, clientPhone, clientAd
 
   // Payment method selection
   const [selectedPayment, setSelectedPayment] = useState<PaymentMethod>("upi");
+  const [orderNotes, setOrderNotes] = useState("");
 
   const platformFee = Math.round(cartTotal * PLATFORM_FEE_RATE * 100) / 100;
   const grandTotal = Math.round((cartTotal + platformFee + DELIVERY_FEE) * 100) / 100;
@@ -81,6 +82,7 @@ export default function CartDrawer({ clientId, clientName, clientPhone, clientAd
           restaurantId,
           restaurantName: group.restaurantName,
           items: orderItems,
+          ...(orderNotes.trim() && { notes: orderNotes.trim() }),
           payment,
         });
       }
@@ -91,6 +93,7 @@ export default function CartDrawer({ clientId, clientName, clientPhone, clientAd
           : `Payment successful! ${restaurantGroups.length} order${restaurantGroups.length > 1 ? "s" : ""} placed!`
       );
       clearCart();
+      setOrderNotes("");
       setOpen(false);
     } catch (err) {
       console.error(err);
@@ -227,6 +230,26 @@ export default function CartDrawer({ clientId, clientName, clientPhone, clientAd
                       );
                     })}
                   </div>
+                </div>
+
+                {/* Order notes */}
+                <div className="px-5 pt-3 pb-1">
+                  <button
+                    onClick={() => document.getElementById('order-notes-input')?.focus()}
+                    className="flex items-center gap-1.5 text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2"
+                  >
+                    <MessageSquare size={12} /> Special Instructions
+                  </button>
+                  <textarea
+                    id="order-notes-input"
+                    value={orderNotes}
+                    onChange={(e) => setOrderNotes(e.target.value)}
+                    placeholder="E.g. No plastic cutlery, extra napkins, ring doorbell…"
+                    maxLength={200}
+                    rows={2}
+                    className="w-full rounded-xl border border-gray-800 bg-gray-900/50 px-3 py-2 text-sm text-gray-200 placeholder:text-gray-600 focus:border-violet-500 focus:ring-1 focus:ring-violet-500/30 outline-none resize-none transition"
+                  />
+                  <p className="text-[10px] text-gray-600 text-right mt-1">{orderNotes.length}/200</p>
                 </div>
 
                 {/* Bill details */}

@@ -27,6 +27,7 @@ import LoadingScreen from "@/components/ui/LoadingScreen";
 import EmailVerification from "@/components/EmailVerification";
 import ProfileCompletion from "@/components/ProfileCompletion";
 import dynamic from "next/dynamic";
+import RestaurantProfileEditor from "@/components/restuarantDashboardComp/RestaurantProfile";
 
 const QRScanner = dynamic(() => import("@/components/QRScanner"), { ssr: false });
 
@@ -219,6 +220,7 @@ export default function RestaurantDashboard() {
       label: "Insights",
       items: [
         { id: "analytics", name: "Analytics", icon: BarChart2 },
+        { id: "payout", name: "Payout & Earnings", icon: Activity },
         { id: "events", name: "Event Integration", icon: CalendarIcon },
       ],
     },
@@ -581,6 +583,9 @@ export default function RestaurantDashboard() {
                   </div>
                 </div>
 
+                {/* Restaurant Profile Editor */}
+                <RestaurantProfileEditor restaurantId={user.uid} restaurantName={displayName} email={userEmail} />
+
                 {/* Actions */}
                 <div className="flex flex-wrap gap-3">
                   <ProfileCompletion userId={user.uid} role="business" />
@@ -592,6 +597,43 @@ export default function RestaurantDashboard() {
                     <LogOut size={16} />
                     Sign Out
                   </button>
+                </div>
+              </section>
+            )}
+
+            {/* ---- Payout & Earnings Dashboard ---- */}
+            {activeSection === "payout" && (
+              <section className="space-y-6">
+                <SectionHeader title="Payout & Earnings" subtitle="Track your revenue and transaction history" />
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                  <KPI icon={<Activity className="text-emerald-400" />} label="Total Earnings" value={`₹${stats.totalEarnings.toFixed(0)}`} />
+                  <KPI icon={<CheckCircle2 className="text-violet-400" />} label="Completed Orders" value={stats.completedOrders} />
+                  <KPI icon={<Package className="text-blue-400" />} label="Total Orders" value={stats.totalOrders} />
+                  <KPI icon={<Users className="text-amber-400" />} label="Avg Order Value" value={stats.completedOrders > 0 ? `₹${(stats.totalEarnings / stats.completedOrders).toFixed(0)}` : "₹0"} />
+                </div>
+                <div className="rounded-2xl border border-gray-800 bg-gray-900/70 p-6">
+                  <h3 className="text-sm font-semibold text-gray-300 mb-4">Revenue Summary</h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div className="p-4 rounded-xl bg-emerald-600/10 border border-emerald-500/20">
+                      <p className="text-xs text-emerald-400 font-medium">Gross Revenue</p>
+                      <p className="text-2xl font-bold text-white mt-1">₹{(stats.totalEarnings + stats.totalEarnings * 0.05).toFixed(0)}</p>
+                      <p className="text-[10px] text-gray-500 mt-1">Before platform fees</p>
+                    </div>
+                    <div className="p-4 rounded-xl bg-amber-600/10 border border-amber-500/20">
+                      <p className="text-xs text-amber-400 font-medium">Platform Fee (5%)</p>
+                      <p className="text-2xl font-bold text-white mt-1">₹{(stats.totalEarnings * 0.05).toFixed(0)}</p>
+                      <p className="text-[10px] text-gray-500 mt-1">Deducted by platform</p>
+                    </div>
+                    <div className="p-4 rounded-xl bg-violet-600/10 border border-violet-500/20">
+                      <p className="text-xs text-violet-400 font-medium">Net Earnings</p>
+                      <p className="text-2xl font-bold text-white mt-1">₹{stats.totalEarnings.toFixed(0)}</p>
+                      <p className="text-[10px] text-gray-500 mt-1">Your take-home</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="rounded-2xl border border-gray-800 bg-gray-900/70 p-6">
+                  <h3 className="text-sm font-semibold text-gray-300 mb-2">Payout Info</h3>
+                  <p className="text-xs text-gray-400">Payouts are processed weekly. Contact admin to set up your bank account for direct deposits.</p>
                 </div>
               </section>
             )}

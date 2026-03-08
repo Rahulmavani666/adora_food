@@ -3,9 +3,11 @@
 import React, { useState } from 'react';
 import { seedDatabase, clearDatabase } from '../../lib/sample-data';
 import { toast } from 'sonner';
+import AdminDashboard from '@/components/AdminDashboard';
 
 export default function AdminPage() {
   const [loading, setLoading] = useState(false);
+  const [showDbTools, setShowDbTools] = useState(false);
 
   const handleSeedDatabase = async () => {
     setLoading(true);
@@ -38,55 +40,41 @@ export default function AdminPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-4xl mx-auto">
-        <h1 className="text-3xl font-bold text-gray-900 mb-8">Admin Dashboard</h1>
+    <>
+      <AdminDashboard />
+      
+      {/* DB Tools toggle */}
+      <div className="max-w-7xl mx-auto px-6 pb-8">
+        <button
+          onClick={() => setShowDbTools(!showDbTools)}
+          className="text-xs text-gray-600 hover:text-gray-400 transition"
+        >
+          {showDbTools ? 'Hide' : 'Show'} Database Tools
+        </button>
         
-        <div className="bg-white rounded-lg shadow-md p-6">
-          <h2 className="text-xl font-semibold text-gray-800 mb-6">Database Management</h2>
-          
-          <div className="space-y-4">
-            <div className="p-4 bg-blue-50 rounded-lg">
-              <h3 className="font-medium text-blue-800 mb-2">Seed Database</h3>
-              <p className="text-blue-700 text-sm mb-4">
-                This will populate the database with sample restaurants and food items for testing purposes.
-              </p>
+        {showDbTools && (
+          <div className="mt-4 rounded-xl border border-gray-800 bg-gray-900/70 p-6 space-y-4">
+            <h3 className="text-sm font-semibold text-gray-300">Database Management (Dev Only)</h3>
+            <div className="flex gap-3">
               <button
                 onClick={handleSeedDatabase}
                 disabled={loading}
-                className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition text-sm disabled:opacity-50"
               >
-                {loading ? 'Seeding...' : 'Seed Database'}
+                {loading ? 'Working...' : 'Seed Database'}
               </button>
-            </div>
-
-            <div className="p-4 bg-red-50 rounded-lg">
-              <h3 className="font-medium text-red-800 mb-2">Clear Database</h3>
-              <p className="text-red-700 text-sm mb-4">
-                ⚠️ Warning: This will remove all data from the database. Use with caution!
-              </p>
               <button
                 onClick={handleClearDatabase}
                 disabled={loading}
-                className="bg-red-600 text-white px-6 py-3 rounded-lg hover:bg-red-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition text-sm disabled:opacity-50"
               >
-                {loading ? 'Clearing...' : 'Clear Database'}
+                {loading ? 'Working...' : 'Clear Database'}
               </button>
             </div>
           </div>
-
-          <div className="mt-8 p-4 bg-gray-50 rounded-lg">
-            <h3 className="font-medium text-gray-800 mb-2">Instructions</h3>
-            <ol className="list-decimal list-inside text-gray-700 text-sm space-y-1">
-              <li>First, seed the database with sample data</li>
-              <li>Navigate to the dashboard to test the system</li>
-              <li>Switch between client and restaurant views</li>
-              <li>Test the complete order flow: claim → accept → track → deliver</li>
-            </ol>
-          </div>
-        </div>
+        )}
       </div>
-    </div>
+    </>
   );
 }
 

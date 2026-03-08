@@ -7,8 +7,8 @@ import {
 } from "lucide-react";
 import { useEffect, useState, useMemo } from "react";
 import { listingService, orderService, reviewService } from "@/lib/firebase-services";
-import type { SurplusListing, OrderItem, PaymentInfo, PaymentMethod } from "@/lib/types";
-import { PLATFORM_FEE_RATE } from "@/lib/types";
+import type { SurplusListing, OrderItem, PaymentInfo, PaymentMethod, DietaryTag, CuisineType } from "@/lib/types";
+import { PLATFORM_FEE_RATE, DIETARY_TAG_LABELS, CUISINE_TYPES } from "@/lib/types";
 import { useFavorites } from "@/hooks/useFavorites";
 import { useCart } from "@/hooks/useCart";
 import { useGeolocation } from "@/hooks/useGeolocation";
@@ -153,6 +153,8 @@ export default function SurplusListingCard({
   const [filterFreshness, setFilterFreshness] = useState<string>("all");
   const [filterStorage, setFilterStorage] = useState<string>("all");
   const [filterPriceMax, setFilterPriceMax] = useState<number>(0);
+  const [filterDietary, setFilterDietary] = useState<DietaryTag[]>([]);
+  const [filterCuisine, setFilterCuisine] = useState<string>("all");
   const [sortBy, setSortBy] = useState<"newest" | "price_low" | "price_high" | "discount" | "nearest">("newest");
   const [expandedMapId, setExpandedMapId] = useState<string | null>(null);
 
@@ -192,6 +194,8 @@ export default function SurplusListingCard({
     if (filterFreshness !== "all") result = result.filter((i) => i.freshnessStatus === filterFreshness);
     if (filterStorage !== "all") result = result.filter((i) => i.storageCondition === filterStorage);
     if (filterPriceMax > 0) result = result.filter((i) => i.surplusPrice <= filterPriceMax);
+    if (filterDietary.length > 0) result = result.filter((i) => i.dietaryTags && filterDietary.every(tag => i.dietaryTags!.includes(tag)));
+    if (filterCuisine !== "all") result = result.filter((i) => i.cuisineType === filterCuisine);
 
     switch (sortBy) {
       case "price_low":
@@ -216,13 +220,15 @@ export default function SurplusListingCard({
         break;
     }
     return result;
-  }, [listings, searchQuery, filterFreshness, filterStorage, filterPriceMax, sortBy, userPosition]);
+  }, [listings, searchQuery, filterFreshness, filterStorage, filterPriceMax, filterDietary, filterCuisine, sortBy, userPosition]);
 
-  const activeFilterCount = [filterFreshness !== "all", filterStorage !== "all", filterPriceMax > 0].filter(Boolean).length;
+  const activeFilterCount = [filterFreshness !== "all", filterStorage !== "all", filterPriceMax > 0, filterDietary.length > 0, filterCuisine !== "all"].filter(Boolean).length;
   const clearFilters = () => {
     setFilterFreshness("all");
     setFilterStorage("all");
     setFilterPriceMax(0);
+    setFilterDietary([]);
+    setFilterCuisine("all");
     setSortBy("newest");
     setSearchQuery("");
   };
@@ -437,6 +443,35 @@ export default function SurplusListingCard({
               className="w-full rounded-xl bg-gray-800 border border-gray-700 px-3 py-2.5 text-sm outline-none focus:border-violet-500"
             />
           </div>
+          <div>
+            <label className="text-xs text-gray-400 mb-1.5 block font-medium">Cuisine</label>
+            <select
+              value={filterCuisine}
+              onChange={(e) => setFilterCuisine(e.target.value)}
+              className="w-full rounded-xl bg-gray-800 border border-gray-700 px-3 py-2.5 text-sm outline-none focus:border-violet-500 text-gray-300"
+            >
+              <option value="all">All Cuisines</option>
+              {CUISINE_TYPES.map(c => <option key={c} value={c}>{c}</option>)}
+            </select>
+          </div>
+          <div className="sm:col-span-3">
+            <label className="text-xs text-gray-400 mb-1.5 block font-medium">Dietary Preferences</label>
+            <div className="flex flex-wrap gap-2">
+              {(Object.entries(DIETARY_TAG_LABELS) as [DietaryTag, string][]).map(([tag, label]) => (
+                <button
+                  key={tag}
+                  onClick={() => setFilterDietary(prev => prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag])}
+                  className={`px-3 py-1.5 rounded-full text-xs font-medium transition border ${
+                    filterDietary.includes(tag)
+                      ? 'bg-emerald-600/30 border-emerald-500 text-emerald-300'
+                      : 'bg-gray-800 border-gray-700 text-gray-400 hover:border-gray-500'
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
           <div className="flex items-end">
             {activeFilterCount > 0 && (
               <button onClick={clearFilters} className="text-sm text-violet-400 hover:text-violet-300 font-medium">
@@ -556,6 +591,25 @@ export default function SurplusListingCard({
 
                 {/* Description */}
                 {item.description && <p className="text-xs text-gray-400 line-clamp-2">{item.description}</p>}
+
+                {/* Dietary Tags */}
+                {item.dietaryTags && item.dietaryTags.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5">
+                    {item.dietaryTags.map(tag => (
+                      <span key={tag} className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-600/15 text-emerald-400 border border-emerald-600/20">
+                        {DIETARY_TAG_LABELS[tag]}
+                      </span>
+                    ))}
+                    {item.cuisineType && (
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-violet-600/15 text-violet-400 border border-violet-600/20">
+                        {item.cuisineType}
+                      </span>
+                    )}
+                  </div>
+                )}
+                {item.allergenInfo && (
+                  <p className="text-[10px] text-amber-400/80">⚠️ {item.allergenInfo}</p>
+                )}
 
                 {/* Quantity + Time */}
                 <div className="flex items-center gap-4 text-xs text-gray-500">

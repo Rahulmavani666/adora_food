@@ -9,7 +9,8 @@ import {
   Notification, NotificationType, PLATFORM_FEE_RATE,
   PlatformFees, ORDER_STATUS_FLOW,
   Review, Favorite, UserStreak, UserBadge, BadgeType, Referral,
-  ChatMessage, MessageSender, PaymentInfo
+  ChatMessage, MessageSender, PaymentInfo,
+  RestaurantProfile, SavedAddress, RefundRequest, RefundStatus, RefundReason
 } from './types';
 
 // ─── Helper: Generate 6-digit OTP ───
@@ -747,6 +748,264 @@ export const chatService = {
     );
     return onSnapshot(q, (snap) => {
       callback(snap.size);
+    });
+  },
+};
+
+// ────────────────────────────────────────────────────────
+//  RESTAURANT PROFILE SERVICE
+// ────────────────────────────────────────────────────────
+export const restaurantProfileService = {
+  /** Get or create a restaurant profile */
+  async getProfile(restaurantId: string): Promise<RestaurantProfile | null> {
+    const ref = doc(db, 'restaurantProfiles', restaurantId);
+    const snap = await getDoc(ref);
+    if (snap.exists()) return { id: snap.id, ...snap.data() } as RestaurantProfile;
+    return null;
+  },
+
+  /** Save/update restaurant profile */
+  async saveProfile(restaurantId: string, data: Partial<RestaurantProfile>): Promise<void> {
+    const ref = doc(db, 'restaurantProfiles', restaurantId);
+    const snap = await getDoc(ref);
+    const clean: Record<string, any> = {};
+    for (const [k, v] of Object.entries(data)) {
+      if (v !== undefined) clean[k] = v;
+    }
+    if (snap.exists()) {
+      await updateDoc(ref, { ...clean, updatedAt: serverTimestamp() });
+    } else {
+      const { setDoc } = await import('firebase/firestore');
+      await setDoc(ref, { ...clean, id: restaurantId, createdAt: serverTimestamp(), updatedAt: serverTimestamp() });
+    }
+  },
+
+  /** Subscribe to a restaurant profile */
+  subscribeToProfile(restaurantId: string, callback: (profile: RestaurantProfile | null) => void) {
+    const ref = doc(db, 'restaurantProfiles', restaurantId);
+    return onSnapshot(ref, (snap) => {
+      if (snap.exists()) {
+        callback({ id: snap.id, ...snap.data() } as RestaurantProfile);
+      } else {
+        callback(null);
+      }
+    });
+  },
+
+  /** Get all restaurant profiles (for client browsing) */
+  subscribeToAllProfiles(callback: (profiles: RestaurantProfile[]) => void) {
+    const q = query(collection(db, 'restaurantProfiles'));
+    return onSnapshot(q, (snap) => {
+      const data = snap.docs.map(d => ({ id: d.id, ...d.data() })) as RestaurantProfile[];
+      callback(data);
+    });
+  },
+};
+
+// ────────────────────────────────────────────────────────
+//  SAVED ADDRESS SERVICE
+// ────────────────────────────────────────────────────────
+export const savedAddressService = {
+  /** Add a saved address */
+  async addAddress(data: Omit<SavedAddress, 'id' | 'createdAt'>): Promise<string> {
+    // If setting as default, unset other defaults
+    if (data.isDefault) {
+      const q = query(collection(db, 'savedAddresses'), where('userId', '==', data.userId), where('isDefault', '==', true));
+      const snap = await getDocs(q);
+      const batch = writeBatch(db);
+      snap.docs.forEach(d => batch.update(d.ref, { isDefault: false }));
+      if (!snap.empty) await batch.commit();
+    }
+    const ref = await addDoc(collection(db, 'savedAddresses'), {
+      ...data,
+      createdAt: serverTimestamp(),
+    });
+    return ref.id;
+  },
+
+  /** Delete a saved address */
+  async deleteAddress(addressId: string): Promise<void> {
+    await deleteDoc(doc(db, 'savedAddresses', addressId));
+  },
+
+  /** Subscribe to user's saved addresses */
+  subscribeToAddresses(userId: string, callback: (addresses: SavedAddress[]) => void) {
+    const q = query(collection(db, 'savedAddresses'), where('userId', '==', userId));
+    return onSnapshot(q, (snap) => {
+      const data = snap.docs.map(d => ({ id: d.id, ...d.data() })) as SavedAddress[];
+      data.sort((a, b) => (b.isDefault ? 1 : 0) - (a.isDefault ? 1 : 0));
+      callback(data);
+    });
+  },
+
+  /** Set an address as default */
+  async setDefault(userId: string, addressId: string): Promise<void> {
+    const q = query(collection(db, 'savedAddresses'), where('userId', '==', userId), where('isDefault', '==', true));
+    const snap = await getDocs(q);
+    const batch = writeBatch(db);
+    snap.docs.forEach(d => batch.update(d.ref, { isDefault: false }));
+    batch.update(doc(db, 'savedAddresses', addressId), { isDefault: true });
+    await batch.commit();
+  },
+};
+
+// ────────────────────────────────────────────────────────
+//  REFUND / DISPUTE SERVICE
+// ────────────────────────────────────────────────────────
+export const refundService = {
+  /** Submit a refund request */
+  async submitRefund(data: Omit<RefundRequest, 'id' | 'status' | 'createdAt' | 'updatedAt'>): Promise<string> {
+    const ref = await addDoc(collection(db, 'refunds'), {
+      ...data,
+      status: 'requested' as RefundStatus,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    });
+
+    // Notify restaurant
+    await notificationService.send({
+      userId: data.restaurantId,
+      userRole: 'business',
+      type: 'status_update',
+      title: 'Refund Requested',
+      message: `${data.clientName} has requested a refund for order #${data.orderId.slice(0, 6)}`,
+      orderId: data.orderId,
+    });
+
+    return ref.id;
+  },
+
+  /** Update refund status (admin/restaurant) */
+  async updateRefundStatus(refundId: string, status: RefundStatus, adminNote?: string): Promise<void> {
+    const ref = doc(db, 'refunds', refundId);
+    const updates: Record<string, any> = { status, updatedAt: serverTimestamp() };
+    if (adminNote) updates.adminNote = adminNote;
+    await updateDoc(ref, updates);
+
+    // If approved, update payment status on order
+    if (status === 'approved') {
+      const refundSnap = await getDoc(ref);
+      if (refundSnap.exists()) {
+        const refundData = refundSnap.data();
+        const orderRef = doc(db, 'orders', refundData.orderId);
+        await updateDoc(orderRef, { 'payment.status': 'refunded', updatedAt: serverTimestamp() });
+
+        // Notify client
+        await notificationService.send({
+          userId: refundData.clientId,
+          userRole: 'client',
+          type: 'status_update',
+          title: 'Refund Approved',
+          message: `Your refund of ₹${refundData.amount} has been approved.`,
+          orderId: refundData.orderId,
+        });
+      }
+    }
+  },
+
+  /** Subscribe to refunds for a client */
+  subscribeToClientRefunds(clientId: string, callback: (refunds: RefundRequest[]) => void) {
+    const q = query(collection(db, 'refunds'), where('clientId', '==', clientId));
+    return onSnapshot(q, (snap) => {
+      const data = snap.docs.map(d => ({ id: d.id, ...d.data() })) as RefundRequest[];
+      data.sort((a, b) => (b.createdAt?.toMillis?.() ?? 0) - (a.createdAt?.toMillis?.() ?? 0));
+      callback(data);
+    });
+  },
+
+  /** Subscribe to refunds for a restaurant */
+  subscribeToRestaurantRefunds(restaurantId: string, callback: (refunds: RefundRequest[]) => void) {
+    const q = query(collection(db, 'refunds'), where('restaurantId', '==', restaurantId));
+    return onSnapshot(q, (snap) => {
+      const data = snap.docs.map(d => ({ id: d.id, ...d.data() })) as RefundRequest[];
+      data.sort((a, b) => (b.createdAt?.toMillis?.() ?? 0) - (a.createdAt?.toMillis?.() ?? 0));
+      callback(data);
+    });
+  },
+
+  /** Subscribe to all refunds (admin) */
+  subscribeToAllRefunds(callback: (refunds: RefundRequest[]) => void) {
+    const q = query(collection(db, 'refunds'));
+    return onSnapshot(q, (snap) => {
+      const data = snap.docs.map(d => ({ id: d.id, ...d.data() })) as RefundRequest[];
+      data.sort((a, b) => (b.createdAt?.toMillis?.() ?? 0) - (a.createdAt?.toMillis?.() ?? 0));
+      callback(data);
+    });
+  },
+};
+
+// ────────────────────────────────────────────────────────
+//  ADMIN SERVICE
+// ────────────────────────────────────────────────────────
+export const adminService = {
+  /** Get platform-wide stats */
+  subscribeToPlatformStats(callback: (stats: {
+    totalUsers: number;
+    totalRestaurants: number;
+    totalClients: number;
+    totalOrders: number;
+    completedOrders: number;
+    totalRevenue: number;
+    platformEarnings: number;
+    totalFoodSavedKg: number;
+    co2Reduced: number;
+    totalListings: number;
+    activeListings: number;
+    pendingRefunds: number;
+  }) => void) {
+    let users: any[] = [];
+    let orders: any[] = [];
+    let listings: any[] = [];
+    let refunds: any[] = [];
+
+    const compute = () => {
+      const restaurants = users.filter(u => u.role === 'business').length;
+      const clients = users.filter(u => u.role === 'client').length;
+      const completed = orders.filter(o => o.status === 'completed');
+      const totalRevenue = completed.reduce((s: number, o: any) => s + (o.clientTotal || 0), 0);
+      const platformEarnings = completed.reduce((s: number, o: any) => s + ((o.platformFees?.clientFee || 0) + (o.platformFees?.restaurantFee || 0)), 0);
+      const foodSavedKg = completed.reduce((s: number, o: any) =>
+        s + (o.items?.reduce((si: number, item: any) => si + (item.quantity || 0), 0) || 0), 0);
+      const activeListings = listings.filter(l => l.status === 'available').length;
+      const pendingRefunds = refunds.filter(r => r.status === 'requested').length;
+
+      callback({
+        totalUsers: users.length,
+        totalRestaurants: restaurants,
+        totalClients: clients,
+        totalOrders: orders.length,
+        completedOrders: completed.length,
+        totalRevenue: Math.round(totalRevenue * 100) / 100,
+        platformEarnings: Math.round(platformEarnings * 100) / 100,
+        totalFoodSavedKg: foodSavedKg,
+        co2Reduced: Math.round(foodSavedKg * 1.9 * 100) / 100,
+        totalListings: listings.length,
+        activeListings,
+        pendingRefunds,
+      });
+    };
+
+    const u1 = onSnapshot(query(collection(db, 'users')), snap => { users = snap.docs.map(d => ({ id: d.id, ...d.data() })); compute(); });
+    const u2 = onSnapshot(query(collection(db, 'orders')), snap => { orders = snap.docs.map(d => ({ id: d.id, ...d.data() })); compute(); });
+    const u3 = onSnapshot(query(collection(db, 'listings')), snap => { listings = snap.docs.map(d => ({ id: d.id, ...d.data() })); compute(); });
+    const u4 = onSnapshot(query(collection(db, 'refunds')), snap => { refunds = snap.docs.map(d => ({ id: d.id, ...d.data() })); compute(); });
+
+    return () => { u1(); u2(); u3(); u4(); };
+  },
+
+  /** Get all users */
+  subscribeToAllUsers(callback: (users: any[]) => void) {
+    return onSnapshot(query(collection(db, 'users')), snap => {
+      callback(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+    });
+  },
+
+  /** Get all orders */
+  subscribeToAllOrders(callback: (orders: Order[]) => void) {
+    return onSnapshot(query(collection(db, 'orders')), snap => {
+      const data = snap.docs.map(d => ({ id: d.id, ...d.data() })) as Order[];
+      data.sort((a, b) => (b.createdAt?.toMillis?.() ?? 0) - (a.createdAt?.toMillis?.() ?? 0));
+      callback(data);
     });
   },
 };

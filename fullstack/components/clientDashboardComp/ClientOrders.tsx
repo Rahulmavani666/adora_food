@@ -4,10 +4,10 @@
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Badge } from "../ui/badge";
-import { orderService, listingService, reviewService } from "@/lib/firebase-services";
-import type { Order, OrderStatus, OrderItem } from "@/lib/types";
-import { ORDER_STATUS_FLOW } from "@/lib/types";
-import { CheckCircle2, Circle, RotateCcw, Clock, XCircle, Star, MessageCircle, CreditCard, Banknote, Smartphone } from "lucide-react";
+import { orderService, listingService, reviewService, refundService } from "@/lib/firebase-services";
+import type { Order, OrderStatus, OrderItem, RefundReason, RefundRequest } from "@/lib/types";
+import { ORDER_STATUS_FLOW, REFUND_REASON_LABELS } from "@/lib/types";
+import { CheckCircle2, Circle, RotateCcw, Clock, XCircle, Star, MessageCircle, CreditCard, Banknote, Smartphone, AlertTriangle } from "lucide-react";
 import TrackingSection from "./Tracking";
 import ReviewModal from "./ReviewModal";
 import { QRCodeInline } from "@/components/QRCodeDisplay";
@@ -26,6 +26,11 @@ export default function ClientOrders({ clientId }: { clientId: string }) {
   const [reviewOrder, setReviewOrder] = useState<Order | null>(null);
   const [reviewedOrderIds, setReviewedOrderIds] = useState<Set<string>>(new Set());
   const [chatOrderId, setChatOrderId] = useState<string | null>(null);
+  const [refundOrder, setRefundOrder] = useState<Order | null>(null);
+  const [refundReason, setRefundReason] = useState<RefundReason>("quality_issue");
+  const [refundDescription, setRefundDescription] = useState("");
+  const [submittingRefund, setSubmittingRefund] = useState(false);
+  const [myRefunds, setMyRefunds] = useState<RefundRequest[]>([]);
 
   useEffect(() => {
     if (!clientId) return;
@@ -46,6 +51,15 @@ export default function ClientOrders({ clientId }: { clientId: string }) {
       setReviewedOrderIds(new Set(ids.filter(Boolean) as string[]));
     });
   }, [orders]);
+
+  // Subscribe to client's refund requests
+  useEffect(() => {
+    if (!clientId) return;
+    const unsub = refundService.subscribeToClientRefunds(clientId, setMyRefunds);
+    return () => unsub();
+  }, [clientId]);
+
+  const refundedOrderIds = new Set(myRefunds.map(r => r.orderId));
 
   const activeOrders = orders.filter(o => ["placed", "accepted", "preparing", "ready", "out_for_delivery"].includes(o.status));
   const historyOrders = orders.filter(o => ["completed", "rejected", "cancelled"].includes(o.status));
@@ -93,6 +107,32 @@ export default function ClientOrders({ clientId }: { clientId: string }) {
     const ts = order.createdAt as any;
     const created = ts?.toMillis?.() ?? (ts?.seconds ? ts.seconds * 1000 : 0);
     return Date.now() - created < 2 * 60 * 1000;
+  }
+
+  // Submit refund request
+  async function handleSubmitRefund() {
+    if (!refundOrder || !refundDescription.trim()) return;
+    setSubmittingRefund(true);
+    try {
+      await refundService.submitRefund({
+        orderId: refundOrder.id,
+        clientId,
+        clientName: refundOrder.clientName || "Client",
+        restaurantId: refundOrder.restaurantId,
+        restaurantName: refundOrder.restaurantName,
+        reason: refundReason,
+        description: refundDescription.trim(),
+        amount: refundOrder.clientTotal || refundOrder.subtotal || 0,
+      });
+      toast.success("Refund request submitted. We'll review it shortly.");
+      setRefundOrder(null);
+      setRefundDescription("");
+      setRefundReason("quality_issue");
+    } catch {
+      toast.error("Failed to submit refund request.");
+    } finally {
+      setSubmittingRefund(false);
+    }
   }
 
   return (
@@ -271,6 +311,22 @@ export default function ClientOrders({ clientId }: { clientId: string }) {
                       Reviewed
                     </span>
                   )}
+                  {/* Refund button — completed orders, no existing refund */}
+                  {order.status === "completed" && !refundedOrderIds.has(order.id) && (
+                    <button
+                      onClick={() => setRefundOrder(order)}
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-rose-700/40 bg-rose-600/10 px-3 py-1.5 text-xs text-rose-400 hover:bg-rose-600/20 transition"
+                    >
+                      <AlertTriangle size={13} />
+                      Request Refund
+                    </button>
+                  )}
+                  {order.status === "completed" && refundedOrderIds.has(order.id) && (
+                    <span className="inline-flex items-center gap-1.5 text-xs text-amber-400">
+                      <Clock size={13} />
+                      Refund {myRefunds.find(r => r.orderId === order.id)?.status || "requested"}
+                    </span>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -313,6 +369,72 @@ export default function ClientOrders({ clientId }: { clientId: string }) {
           />
         );
       })()}
+
+      {/* Refund Request Modal */}
+      {refundOrder && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setRefundOrder(null)} />
+          <div className="relative w-full max-w-md bg-gray-900 border border-gray-800 rounded-2xl p-6 space-y-4 mx-4">
+            <h3 className="text-lg font-bold text-white flex items-center gap-2">
+              <AlertTriangle size={20} className="text-rose-400" />
+              Request Refund
+            </h3>
+            <p className="text-sm text-gray-400">
+              Order #{refundOrder.id.slice(0, 6)} — {refundOrder.restaurantName}
+            </p>
+
+            {/* Reason select */}
+            <div>
+              <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Reason</label>
+              <select
+                value={refundReason}
+                onChange={(e) => setRefundReason(e.target.value as RefundReason)}
+                title="Refund reason"
+                className="mt-1 w-full rounded-xl border border-gray-700 bg-gray-800 px-3 py-2.5 text-sm text-gray-200 focus:border-violet-500 outline-none"
+              >
+                {(Object.entries(REFUND_REASON_LABELS) as [RefundReason, string][]).map(([key, label]) => (
+                  <option key={key} value={key}>{label}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Description */}
+            <div>
+              <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Describe the issue</label>
+              <textarea
+                value={refundDescription}
+                onChange={(e) => setRefundDescription(e.target.value)}
+                placeholder="Tell us what went wrong..."
+                rows={3}
+                maxLength={500}
+                className="mt-1 w-full rounded-xl border border-gray-700 bg-gray-800 px-3 py-2.5 text-sm text-gray-200 placeholder:text-gray-600 focus:border-violet-500 outline-none resize-none"
+              />
+            </div>
+
+            {/* Amount */}
+            <p className="text-sm text-gray-400">
+              Refund amount: <span className="text-emerald-400 font-semibold">₹{(refundOrder.clientTotal || refundOrder.subtotal || 0).toFixed(2)}</span>
+            </p>
+
+            {/* Actions */}
+            <div className="flex justify-end gap-2 pt-2">
+              <button
+                onClick={() => setRefundOrder(null)}
+                className="px-4 py-2 text-sm text-gray-400 hover:text-gray-200 transition"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSubmitRefund}
+                disabled={submittingRefund || !refundDescription.trim()}
+                className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-sm font-medium disabled:opacity-50 transition"
+              >
+                {submittingRefund ? "Submitting…" : "Submit Request"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

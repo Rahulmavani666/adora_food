@@ -3,7 +3,8 @@
 import { useState, useRef } from "react";
 import { ImagePlus, X, IndianRupee, MapPin, Locate } from "lucide-react";
 import { listingService } from "@/lib/firebase-services";
-import type { FreshnessStatus, StorageCondition } from "@/lib/types";
+import type { FreshnessStatus, StorageCondition, DietaryTag, CuisineType } from "@/lib/types";
+import { DIETARY_TAG_LABELS, CUISINE_TYPES } from "@/lib/types";
 import { toast } from "sonner";
 
 export default function RestaurantCreateListing({ uid, restaurantName }: { uid: string; restaurantName: string }) {
@@ -21,7 +22,11 @@ export default function RestaurantCreateListing({ uid, restaurantName }: { uid: 
     location: "",
     latitude: "",
     longitude: "",
+    cuisineType: "Indian" as CuisineType,
+    allergenInfo: "",
   });
+
+  const [dietaryTags, setDietaryTags] = useState<DietaryTag[]>([]);
 
   const [detectingLocation, setDetectingLocation] = useState(false);
 
@@ -135,6 +140,9 @@ export default function RestaurantCreateListing({ uid, restaurantName }: { uid: 
         },
         imageUrl,
         status: "available",
+        ...(dietaryTags.length > 0 && { dietaryTags }),
+        ...(form.cuisineType && { cuisineType: form.cuisineType }),
+        ...(form.allergenInfo && { allergenInfo: form.allergenInfo }),
         ...(form.location && { location: form.location }),
         ...(form.latitude && form.longitude && {
           latitude: Number(form.latitude),
@@ -143,7 +151,8 @@ export default function RestaurantCreateListing({ uid, restaurantName }: { uid: 
       });
 
       toast.success("Listing added! Clients have been notified.");
-      setForm({ item: "", qtyKg: "", unit: "kg", freshness: "Fresh", windowStart: "", windowEnd: "", storage: "Refrigerated", dateAdded: "", originalPrice: "", discountPercent: "50", location: "", latitude: "", longitude: "" });
+      setForm({ item: "", qtyKg: "", unit: "kg", freshness: "Fresh", windowStart: "", windowEnd: "", storage: "Refrigerated", dateAdded: "", originalPrice: "", discountPercent: "50", location: "", latitude: "", longitude: "", cuisineType: "Indian", allergenInfo: "" });
+      setDietaryTags([]);
       clearImage();
     } catch (err) {
       console.error(err);
@@ -259,6 +268,11 @@ export default function RestaurantCreateListing({ uid, restaurantName }: { uid: 
           onChange={(v: any) => setForm({ ...form, storage: v })}
           options={["Refrigerated", "Room Temp", "Frozen"]} />
 
+        {/* Cuisine Type */}
+        <Select label="Cuisine type" value={form.cuisineType}
+          onChange={(v: any) => setForm({ ...form, cuisineType: v })}
+          options={CUISINE_TYPES as unknown as string[]} />
+
         {/* Pricing */}
         <div>
           <label className="block text-xs text-gray-400 mb-1">Original Price (₹)</label>
@@ -300,6 +314,39 @@ export default function RestaurantCreateListing({ uid, restaurantName }: { uid: 
 
         <Input label="Date added" type="date"
           value={form.dateAdded} onChange={(v: any) => setForm({ ...form, dateAdded: v })} />
+      </div>
+
+      {/* Dietary Tags */}
+      <div className="mt-4">
+        <label className="block text-xs text-gray-400 mb-2">Dietary Tags (select all that apply)</label>
+        <div className="flex flex-wrap gap-2">
+          {(Object.entries(DIETARY_TAG_LABELS) as [DietaryTag, string][]).map(([tag, label]) => (
+            <button
+              key={tag}
+              type="button"
+              onClick={() => setDietaryTags(prev => prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag])}
+              className={`px-3 py-1.5 rounded-full text-xs font-medium transition border ${
+                dietaryTags.includes(tag)
+                  ? 'bg-emerald-600/30 border-emerald-500 text-emerald-300'
+                  : 'bg-gray-800 border-gray-700 text-gray-400 hover:border-gray-500'
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Allergen Info */}
+      <div className="mt-4">
+        <label className="block text-xs text-gray-400 mb-1">Allergen Information (optional)</label>
+        <input
+          type="text"
+          placeholder="e.g., Contains peanuts, soy, milk"
+          value={form.allergenInfo}
+          onChange={(e) => setForm({ ...form, allergenInfo: e.target.value })}
+          className="w-full rounded-lg bg-gray-800 border border-gray-700 px-3 py-2 text-sm outline-none focus:border-violet-500"
+        />
       </div>
 
       {/* Location Section */}
