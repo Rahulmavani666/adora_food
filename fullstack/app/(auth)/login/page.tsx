@@ -2,15 +2,18 @@
 
 import { useState } from "react";
 import { FaGoogle, FaGithub } from "react-icons/fa";
-import { auth, db } from "@/lib/firebase";
-import { signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, sendPasswordResetEmail } from "firebase/auth";
-import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
 import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 
 const ParticlesBackground = dynamic(() => import("@/components/ParticlesBackground"), {
   ssr: false,
 });
+
+function getErrorCode(error: unknown) {
+  return typeof error === "object" && error !== null && "code" in error
+    ? String(error.code)
+    : "";
+}
 
 
 
@@ -32,15 +35,23 @@ export default function LoginPage() {
     e.preventDefault();
     setError("");
     try {
+      const [{ auth, db }, authModule, firestoreModule] = await Promise.all([
+        import("@/lib/firebase"),
+        import("firebase/auth"),
+        import("firebase/firestore"),
+      ]);
+
       // 1. Authenticate user
-      const cred = await signInWithEmailAndPassword(
+      const cred = await authModule.signInWithEmailAndPassword(
         auth,
         form.email,
         form.password
       );
 
       // 2. Fetch user profile
-      const userDoc = await getDoc(doc(db, "users", cred.user.uid));
+      const userDoc = await firestoreModule.getDoc(
+        firestoreModule.doc(db, "users", cred.user.uid)
+      );
       if (!userDoc.exists()) {
         setError("User data not found");
         return;
@@ -51,7 +62,7 @@ export default function LoginPage() {
       // 3. Redirect based on role
       if (role === "client") router.push("/Clientdashboard");
       else if (role === "business") router.push("/restaurantdashboard");
-    } catch (err: any) {
+    } catch {
       setError("Invalid credentials");
     }
 
@@ -61,29 +72,39 @@ export default function LoginPage() {
   const handleGoogleLogin = async () => {
     setError("");
     try {
-      const provider = new GoogleAuthProvider();
-      const cred = await signInWithPopup(auth, provider);
+      const [{ auth, db }, authModule, firestoreModule] = await Promise.all([
+        import("@/lib/firebase"),
+        import("firebase/auth"),
+        import("firebase/firestore"),
+      ]);
+
+      const provider = new authModule.GoogleAuthProvider();
+      const cred = await authModule.signInWithPopup(auth, provider);
 
       // Check if user exists in Firestore
-      const userRef = doc(db, "users", cred.user.uid);
-      const userDoc = await getDoc(userRef);
+      const userRef = firestoreModule.doc(db, "users", cred.user.uid);
+      const userDoc = await firestoreModule.getDoc(userRef);
 
       let role = "client"; // default role
 
       if (!userDoc.exists()) {
         // Create new user profile if it doesn't exist
-        await setDoc(userRef, {
+        await firestoreModule.setDoc(userRef, {
           fullName: cred.user.displayName || "Google User",
           email: cred.user.email,
           photoURL: cred.user.photoURL || "",
           role: role,
-          createdAt: serverTimestamp(),
+          createdAt: firestoreModule.serverTimestamp(),
         });
       } else {
         role = userDoc.data().role;
         // Update photoURL if it changed (e.g. user updated their Google profile pic)
         if (cred.user.photoURL && cred.user.photoURL !== userDoc.data().photoURL) {
-          await setDoc(userRef, { photoURL: cred.user.photoURL }, { merge: true });
+          await firestoreModule.setDoc(
+            userRef,
+            { photoURL: cred.user.photoURL },
+            { merge: true }
+          );
         }
       }
 
@@ -92,13 +113,13 @@ export default function LoginPage() {
       else if (role === "business") router.push("/restaurantdashboard");
       else router.push("/Clientdashboard"); // Fallback
 
-    } catch (err: any) {
-      if (err.code === 'auth/popup-closed-by-user') {
+    } catch (error) {
+      if (getErrorCode(error) === "auth/popup-closed-by-user") {
         console.log("Popup closed by user, login cancelled.");
         // We just ignore this error so the UI doesn't show "Failed to log in"
         return;
       }
-      console.error("Google Login Error:", err);
+      console.error("Google Login Error:", error);
       setError("Failed to log in with Google.");
     }
   };
@@ -112,11 +133,16 @@ export default function LoginPage() {
     }
 
     try {
-      await sendPasswordResetEmail(auth, form.email);
+      const [{ auth }, authModule] = await Promise.all([
+        import("@/lib/firebase"),
+        import("firebase/auth"),
+      ]);
+
+      await authModule.sendPasswordResetEmail(auth, form.email);
       setSuccessMsg("Password reset email sent! Check your inbox.");
-    } catch (err: any) {
-      console.error("Password Reset Error:", err);
-      if (err.code === "auth/user-not-found") {
+    } catch (error) {
+      console.error("Password Reset Error:", error);
+      if (getErrorCode(error) === "auth/user-not-found") {
         setError("No user found with this email.");
       } else {
         setError("Failed to send reset email. Please try again.");

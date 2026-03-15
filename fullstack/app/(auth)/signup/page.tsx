@@ -2,19 +2,19 @@
 
 import { useState } from "react";
 import { FaGoogle, FaGithub } from "react-icons/fa";
-import { signIn } from "next-auth/react"; // 
 import dynamic from "next/dynamic";
 
 const ParticlesBackground = dynamic(() => import("@/components/ParticlesBackground"), {
   ssr: false,
 });
 
-
-// -------
-import { auth, db } from "@/lib/firebase";
-import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from "firebase/auth";
-import { doc, setDoc, serverTimestamp, getDoc } from "firebase/firestore";
 import { useRouter } from "next/navigation";
+
+function getErrorCode(error: unknown) {
+  return typeof error === "object" && error !== null && "code" in error
+    ? String(error.code)
+    : "";
+}
 
 
 
@@ -46,34 +46,48 @@ export default function SignUpPage() {
     e.preventDefault();
     setError("");
     try {
+      const [{ auth, db }, authModule, firestoreModule] = await Promise.all([
+        import("@/lib/firebase"),
+        import("firebase/auth"),
+        import("firebase/firestore"),
+      ]);
+
       // 1. Create user in Firebase Auth
-      const cred = await createUserWithEmailAndPassword(
+      const cred = await authModule.createUserWithEmailAndPassword(
         auth,
         form.email,
         form.password
       );
 
       // 2. Store extra info in Firestore
-      await setDoc(doc(db, "users", cred.user.uid), {
+      await firestoreModule.setDoc(firestoreModule.doc(db, "users", cred.user.uid), {
         fullName: form.fullName,
         email: form.email,
         role: form.role, // client OR restaurant
         orgName: form.orgName,
-        createdAt: serverTimestamp(),
+        createdAt: firestoreModule.serverTimestamp(),
       });
 
       // 3. Redirect to login page
       router.push("/login");
 
-    } catch (err: any) {
-      if (err?.code === "auth/email-already-in-use") {
+    } catch (error) {
+      if (getErrorCode(error) === "auth/email-already-in-use") {
         try {
-          const cred = await signInWithEmailAndPassword(
+          const [{ auth, db }, authModule, firestoreModule] = await Promise.all([
+            import("@/lib/firebase"),
+            import("firebase/auth"),
+            import("firebase/firestore"),
+          ]);
+
+          const cred = await authModule.signInWithEmailAndPassword(
             auth,
             form.email,
             form.password
           );
-          const userDoc = await getDoc(doc(db, "users", cred.user.uid));
+          const userDoc = await firestoreModule.getDoc(
+            firestoreModule.doc(db, "users", cred.user.uid)
+          );
           redirectByRole(userDoc.data()?.role);
           return;
         } catch {
@@ -136,6 +150,7 @@ export default function SignUpPage() {
           <div>
             <label className="block text-sm font-medium text-gray-300">I am signing up as</label>
             <select
+              aria-label="Select account type"
               // value={userType}
               // onChange={(e) => setUserType(e.target.value)}
 
