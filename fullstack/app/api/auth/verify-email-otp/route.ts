@@ -7,8 +7,7 @@ import { NextRequest, NextResponse } from "next/server";
  * Body: { otp: string, userId: string }
  */
 
-// Import the shared OTP store from the send route
-import { otpStore } from "../send-email-otp/route";
+import { otpStore } from "../_otpStore";
 
 const MAX_ATTEMPTS = 5;
 

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import nodemailer from "nodemailer";
+import { otpStore } from "../_otpStore";
 
 /**
  * POST /api/auth/send-email-otp
@@ -11,21 +12,6 @@ import nodemailer from "nodemailer";
  *   GMAIL_USER     – your Gmail address (e.g., yourname@gmail.com)
  *   GMAIL_APP_PASS – Gmail App Password (16 chars, from https://myaccount.google.com/apppasswords)
  */
-
-// In-memory OTP store (shared across requests in the same server process)
-interface OtpEntry {
-  otp: string;
-  email: string;
-  expiresAt: number;
-  attempts: number;
-}
-
-// Using globalThis to survive HMR in development
-const globalStore = globalThis as unknown as { __otpStore?: Map<string, OtpEntry> };
-if (!globalStore.__otpStore) {
-  globalStore.__otpStore = new Map();
-}
-export const otpStore = globalStore.__otpStore;
 
 function generateOtp(): string {
   return String(Math.floor(100000 + Math.random() * 900000));

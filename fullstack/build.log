@@ -1,0 +1,51 @@
+
+> fullstack@0.1.0 build
+> next build
+
+ ⚠ Warning: Next.js inferred your workspace root, but it may not be correct.
+ We detected multiple lockfiles and selected the directory of /Users/user/pnpm-lock.yaml as the root directory.
+ To silence this warning, set `outputFileTracingRoot` in your Next.js config, or consider removing one of the lockfiles if it's not needed.
+   See https://nextjs.org/docs/app/api-reference/config/next-config-js/output#caveats for more information.
+ Detected additional lockfiles: 
+   * /Users/user/Desktop/Projects/Adora/fullstack/package-lock.json
+
+   ▲ Next.js 15.5.12
+   - Environments: .env.local
+
+   Creating an optimized production build ...
+ ✓ Compiled successfully in 10.7s
+   Skipping validation of types
+   Skipping linting
+   Collecting page data ...
+   Generating static pages (0/15) ...
+   Generating static pages (3/15) 
+   Generating static pages (7/15) 
+   Generating static pages (11/15) 
+ ✓ Generating static pages (15/15)
+   Finalizing page optimization ...
+   Collecting build traces ...
+
+Route (app)                                 Size  First Load JS
+┌ ƒ /                                    64.6 kB         210 kB
+├ ○ /_not-found                            991 B         104 kB
+├ ○ /admin                               5.54 kB         239 kB
+├ ƒ /api/auth/[...nextauth]                134 B         103 kB
+├ ƒ /api/auth/send-email-otp               134 B         103 kB
+├ ƒ /api/auth/verify-email-otp             134 B         103 kB
+├ ƒ /api/payment/create-order              134 B         103 kB
+├ ƒ /api/payment/verify                    134 B         103 kB
+├ ○ /Clientdashboard                     30.5 kB         274 kB
+├ ○ /dashboard                           5.84 kB         239 kB
+├ ○ /login                               2.41 kB         264 kB
+├ ○ /offline                               537 B         103 kB
+├ ○ /restaurantdashboard                 18.3 kB         262 kB
+└ ○ /signup                              2.35 kB         264 kB
++ First Load JS shared by all             103 kB
+  ├ chunks/255-a41b0d888672637a.js       45.8 kB
+  ├ chunks/4bd1b696-21f374d1156f834a.js  54.2 kB
+  └ other shared chunks (total)          2.55 kB
+
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
+
