@@ -2,8 +2,12 @@
 
 import { useState } from "react";
 import { FaGoogle, FaGithub } from "react-icons/fa";
-import ParticlesBackground from "@/components/ParticlesBackground"
 import { signIn } from "next-auth/react"; // 
+import dynamic from "next/dynamic";
+
+const ParticlesBackground = dynamic(() => import("@/components/ParticlesBackground"), {
+  ssr: false,
+});
 
 
 // -------
